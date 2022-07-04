@@ -1,27 +1,28 @@
 ﻿using System.CommandLine;
 using System.Net.NetworkInformation;
 
-var checkIntervalOption = new Option<int>(new string[] { "--interval", "-i" }, () => 10, "Interval between checks (in seconds)");
-var stopOnSuccessOption = new Option<bool>(new string[] { "--stop", "-s" }, () => false, "Flag if checks stop on first success");
-var checkAddressOption = new Option<string>(new string[] { "--address", "-a" }, () => "8.8.8.8", "Address to check against");
+var intervalOption = new Option<int>(new[] { "--interval", "-i" }, () => 10, "Interval between pings (in seconds)");
+var addressOption = new Option<string>(new[] { "--address", "-a" }, () => "8.8.8.8", "Address to ping against");
+var stopOnSuccessOption = new Option<bool>(new[] { "--stop", "-s" }, () => false, "Stop on success");
 
 var rootCommand = new RootCommand("Checks internet connection with ping command")
 {
-    checkIntervalOption,
-    stopOnSuccessOption,
-    checkAddressOption
+    intervalOption,
+    addressOption,
+    stopOnSuccessOption
 };
 
 rootCommand.SetHandler(
-    async (int checkInterval, bool stopOnSuccess, string checkAddress) =>
+    async (int interval, string address, bool stopOnSuccess) =>
     {
-        var p = new Ping();
+        Ping p = new();
+
         while (true)
         {
-            var response = await p.SendPingAsync(checkAddress);
+            var response = await p.SendPingAsync(address);
             var isSuccess = response.Status == IPStatus.Success;
 
-            Console.Write($"[{DateTime.Now:HH:mm:ss}] ");
+            Console.Write($"[{DateTime.Now:T}] ");
             Console.ForegroundColor = isSuccess ? ConsoleColor.Green : ConsoleColor.Red;
             Console.WriteLine(response.Status);
             Console.ResetColor();
@@ -31,11 +32,11 @@ rootCommand.SetHandler(
                 return;
             }
 
-            await Task.Delay(checkInterval * 1000);
+            await Task.Delay(interval * 1000);
         }
     },
-    checkIntervalOption,
-    stopOnSuccessOption,
-    checkAddressOption);
+    intervalOption,
+    addressOption,
+    stopOnSuccessOption);
 
 return await rootCommand.InvokeAsync(args);
