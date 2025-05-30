@@ -19,12 +19,24 @@ rootCommand.SetHandler(
 
         while (true)
         {
-            var response = await p.SendPingAsync(address);
-            var isSuccess = response.Status == IPStatus.Success;
+            var isSuccess = false;
+            var message = "";
+
+            try
+            {
+                var response = await p.SendPingAsync(address);
+                isSuccess = response.Status == IPStatus.Success;
+                message = response.Status.ToString();
+            }
+            catch (Exception ex)
+            {
+                isSuccess = false;
+                message = ex.Message;
+            }
 
             Console.Write($"[{DateTime.Now:T}] ");
             Console.ForegroundColor = isSuccess ? ConsoleColor.Green : ConsoleColor.Red;
-            Console.WriteLine(response.Status);
+            Console.WriteLine(message);
             Console.ResetColor();
 
             if (isSuccess && stopOnSuccess)
