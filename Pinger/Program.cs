@@ -15,9 +15,16 @@ var rootCommand = new RootCommand("Checks internet connection with ping command"
 rootCommand.SetHandler(
     async (int interval, string address, bool stopOnSuccess) =>
     {
-        Ping p = new();
+        using var cts = new CancellationTokenSource();
+        Console.CancelKeyPress += (_, e) =>
+        {
+            e.Cancel = true;
+            cts.Cancel();
+        };
 
-        while (true)
+        using var p = new Ping();
+
+        while (!cts.Token.IsCancellationRequested)
         {
             var isSuccess = false;
             var message = "";
@@ -26,12 +33,13 @@ rootCommand.SetHandler(
             {
                 var response = await p.SendPingAsync(address);
                 isSuccess = response.Status == IPStatus.Success;
-                message = response.Status.ToString();
+                message = isSuccess
+                    ? $"{response.Status} ({response.RoundtripTime}ms)"
+                    : response.Status.ToString();
             }
             catch (Exception ex)
             {
-                isSuccess = false;
-                message = ex.Message;
+                message = ex.InnerException?.Message ?? ex.Message;
             }
 
             Console.Write($"[{DateTime.Now:T}] ");
@@ -44,7 +52,14 @@ rootCommand.SetHandler(
                 return;
             }
 
-            await Task.Delay(interval * 1000);
+            try
+            {
+                await Task.Delay(interval * 1000, cts.Token);
+            }
+            catch (OperationCanceledException)
+            {
+                break;
+            }
         }
     },
     intervalOption,
