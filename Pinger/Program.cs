@@ -5,6 +5,22 @@ var intervalOption = new Option<int>(new[] { "--interval", "-i" }, () => 10, "In
 var addressOption = new Option<string>(new[] { "--address", "-a" }, () => "8.8.8.8", "Address to ping against");
 var stopOnSuccessOption = new Option<bool>(new[] { "--stop", "-s" }, () => false, "Stop on success");
 
+intervalOption.AddValidator(result =>
+{
+    if (result.GetValueOrDefault<int>() <= 0)
+    {
+        result.ErrorMessage = "Interval must be greater than 0.";
+    }
+});
+
+addressOption.AddValidator(result =>
+{
+    if (string.IsNullOrWhiteSpace(result.GetValueOrDefault<string>()))
+    {
+        result.ErrorMessage = "Address must be provided.";
+    }
+});
+
 var rootCommand = new RootCommand("Checks internet connection with ping command")
 {
     intervalOption,
@@ -54,7 +70,7 @@ rootCommand.SetHandler(
 
             try
             {
-                await Task.Delay(interval * 1000, cts.Token);
+                await Task.Delay(TimeSpan.FromSeconds(interval), cts.Token);
             }
             catch (OperationCanceledException)
             {
